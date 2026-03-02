@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>T.O.D. | Tactical OSINT Dashboard</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="T.O.D.">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --glow: #00ff41;
+            --bg: #050505;
+            --surface: #0c0c0c;
+        }
+
+        body { 
+            font-family: 'JetBrains+Mono', monospace; 
+            background: var(--bg); 
+            color: var(--glow); 
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Desktop Grid vs Mobile List */
+        #feed-engine {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            #feed-engine {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        .feed-card { 
+            border: 1px solid #1a1a1a;
+            background: var(--surface); 
+            transition: border 0.3s, transform 0.1s;
+        }
+        
+        .feed-card:hover { border-color: var(--glow); }
+        .feed-card:active { transform: scale(0.99); }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Tactical HUD Elements */
+        .scan-line {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 255, 65, 0.1);
+            position: fixed;
+            top: 0;
+            z-index: 100;
+            animation: scan 4s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            from { top: 0; }
+            to { top: 100vh; }
+        }
+
+        .safe-area-inset {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body class="safe-area-inset min-h-screen flex flex-col">
+
+    <div class="scan-line"></div>
+
+    <header class="p-4 border-b border-zinc-900 bg-black/80 backdrop-blur-xl sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-black tracking-tighter italic leading-none">T.O.D. <span class="text-zinc-700 text-[10px] not-italic ml-2">v2.1_UNIVERSAL</span></h1>
+                <p class="text-[9px] text-zinc-500 uppercase tracking-[0.2em] mt-1">Global Intelligence Hub</p>
+            </div>
+            <div class="text-right tabular-nums">
+                <div id="clock" class="text-xs font-bold">00:00:00 UTC</div>
+                <div class="text-[8px] text-amber-500 font-bold flex items-center justify-end">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1 animate-pulse"></span>
+                    UPLINK: ACTIVE
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="bg-zinc-950 border-b border-zinc-900 sticky top-[68px] z-40">
+        <div class="max-w-7xl mx-auto flex overflow-x-auto no-scrollbar px-4 py-3 space-x-3">
+            <button onclick="loadFeed('conflict')" class="flex-shrink-0 bg-red-950/20 border border-red-900/50 px-4 py-2 rounded text-[10px] font-bold text-red-500 uppercase hover:bg-red-900/40 transition-colors">Conflict_Live</button>
+            <button onclick="loadFeed('defcon')" class="flex-shrink-0 bg-zinc-900 border border-zinc-700 px-4 py-2 rounded text-[10px] font-bold text-zinc-300 uppercase hover:border-zinc-500">Defcon_Level</button>
+            <button onclick="loadFeed('nato')" class="flex-shrink-0 bg-blue-950/20 border border-blue-900/50 px-4 py-2 rounded text-[10px] font-bold text-blue-400 uppercase hover:bg-blue-900/40">NATO_High_Com</button>
+            <button onclick="loadFeed('cyber')" class="flex-shrink-0 bg-zinc-900 border border-zinc-700 px-4 py-2 rounded text-[10px] font-bold text-zinc-300 uppercase">Cyber_Threat</button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto w-full p-4 flex-grow">
+        <div id="feed-engine">
+            <div class="col-span-full py-32 text-center text-zinc-700 text-xs animate-pulse font-bold tracking-widest uppercase">>>> Syncing with Raw Data Streams...</div>
+        </div>
+    </main>
+
+    <footer class="bg-black border-t border-zinc-900 p-3 sticky bottom-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center text-[9px] text-zinc-600 font-bold uppercase tracking-widest">
+            <div>Protocol: RAW_SIGNAL_v2.1</div>
+            <div class="hidden sm:block">Location: [GLOBAL_SCAN_RELAY]</div>
+            <div class="flex items-center">
+                <span class="mr-2">System Green</span>
+                <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const FEEDS = {
+            conflict: "https://liveuamap.com/rss",
+            defcon: "https://defconwarningsystem.com/feed/",
+            nato: "https://www.nato.int/cps/en/natohq/rss.xml",
+            cyber: "https://feeds.feedburner.com/TheHackersNews"
+        };
+
+        async function loadFeed(category) {
+            const container = document.getElementById('feed-engine');
+            // Reset grid for loader
+            container.innerHTML = '<div class="col-span-full py-20 text-center text-amber-500 text-xs tracking-widest uppercase animate-pulse">>>> Accessing Tactical Data Link...</div>';
+            
+            try {
+                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(FEEDS[category])}`);
+                const data = await res.json();
+                
+                container.innerHTML = '';
+                if (!data.items || data.items.length === 0) throw new Error();
+
+                data.items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'feed-card p-5 rounded-sm flex flex-col justify-between';
+                    
+                    // Cleanup description - remove images and HTML tags for raw text vibe
+                    const cleanDesc = item.description.replace(/<img[^>]*>/g, "").replace(/<[^>]*>?/gm, '').trim();
+
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex justify-between items-center text-[9px] mb-3 font-bold uppercase">
+                                <span class="text-zinc-500 italic">${new Date(item.pubDate).toLocaleString()}</span>
+                                <span class="px-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-zinc-400">${category}</span>
+                            </div>
+                            <h3 class="text-sm font-bold leading-snug mb-3 text-zinc-100 group-hover:text-green-400 transition-colors">${item.title}</h3>
+                            <p class="text-[10px] text-zinc-500 leading-relaxed mb-4 line-clamp-4 overflow-hidden">${cleanDesc}</p>
+                        </div>
+                        <a href="${item.link}" target="_blank" class="mt-auto text-[9px] border border-zinc-800 px-3 py-2 rounded text-center text-green-500 font-bold uppercase active:scale-95 transition-all hover:bg-green-500/10 hover:border-green-500 tracking-[0.2em]">
+                            Open_Full_Intelligence
+                        </a>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                container.innerHTML = '<div class="col-span-full text-red-600 text-[10px] text-center py-20 font-bold uppercase tracking-widest italic">!!! EMERGENCY: DATA LINK INTERRUPTED !!!</div>';
+            }
+        }
+
+        // Clock Logic
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toISOString().split('T')[1].split('.')[0] + ' UTC';
+        }, 1000);
+
+        // Initial Boot
+        loadFeed('conflict');
+    </script>
+</body>
+</html>
